@@ -1,0 +1,8 @@
+#!/bin/sh
+# Hook opsional: tidak mewajibkan pencatatan AI dan tidak memblokir commit karena sesi AI.
+# Aktifkan dengan: git config core.hooksPath .githooks
+
+if command -v php >/dev/null 2>&1 && [ -f scripts/ai-task.php ]; then
+  php scripts/ai-task.php validate
+fi
+exit 0
