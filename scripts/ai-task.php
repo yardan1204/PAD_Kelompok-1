@@ -1,157 +1,155 @@
 <?php
-
 declare(strict_types=1);
 
 /**
- * Workflow sesi AI.
- * Jalankan dari root repository: php scripts/ai-task.php start|finish|validate
+ * Workflow Pencatatan Sesi AI Otomatis (Riwayat Gabungan).
+ * Dieksekusi otomatis oleh AI di belakang layar:
+ *   php scripts/ai-task.php auto --provider="Nama AI" --goal="Tujuan" --prompt="Prompt user" --before="Kondisi awal" --work="Pekerjaan AI" --after="Kondisi akhir" --output="Respons AI"
  */
 
-function command(string $cmd, ?string &$output = null): int
-{
+function command(string $cmd, ?string &$output = null): int {
     $lines = [];
+    $code = 0;
     exec($cmd . ' 2>&1', $lines, $code);
     $output = implode(PHP_EOL, $lines);
     return $code;
 }
-function git(string $args, ?string &$output = null): int
-{
+
+function git(string $args, ?string &$output = null): int {
     return command('git ' . $args, $output);
 }
-function rootPath(string $path = ''): string
-{
-    return dirname(__DIR__) . ($path !== '' ? DIRECTORY_SEPARATOR . $path : '');
+
+function rootPath(string $path = ''): string {
+    $base = dirname(__DIR__);
+    if ($path === '') {
+        return $base;
+    }
+    return $base . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
 }
-function fail(string $message): never
-{
+
+function fail(string $message): never {
     fwrite(STDERR, "GAGAL: {$message}" . PHP_EOL);
     exit(1);
 }
-function ask(string $label): string
-{
-    fwrite(STDOUT, $label . ': ');
-    $line = fgets(STDIN);
-    return trim($line === false ? '' : $line);
-}
-function ensureRoot(): void
-{
+
+function ensureRoot(): void {
     $out = '';
-    if (git('rev-parse --show-toplevel', $out) !== 0 || realpath(trim($out)) !== realpath(rootPath())) {
+    if (git('rev-parse --show-toplevel', $out) !== 0) {
+        fail('Gagal memeriksa root repository Git.');
+    }
+    $repoRoot = realpath(trim($out));
+    $expectedRoot = realpath(rootPath());
+    if ($repoRoot === false || $expectedRoot === false || strcasecmp($repoRoot, $expectedRoot) !== 0) {
         fail('Jalankan perintah dari root repository Git.');
     }
 }
-function activeSessions(): array
-{
-    $files = glob(rootPath('docs/ai-usage/sessions/AI-*.md')) ?: [];
-    return array_values(array_filter($files, static function (string $file): bool {
-        return str_contains(file_get_contents($file) ?: '', '- Status: AKTIF');
-    }));
+
+function getGitIdentity(): array {
+    $name = '';
+    $email = '';
+    git('config user.name', $name);
+    git('config user.email', $email);
+    $name = trim($name);
+    $email = trim($email);
+
+    if ($name === '' || $email === '') {
+        fail('Identitas Git belum lengkap. Jalankan: git config user.name "Nama Lengkap" dan git config user.email "email@domain.com"');
+    }
+    return ['name' => $name, 'email' => $email];
 }
-function detectProvider(): string
-{
-    // Detect only the presence of known environment markers; never print their values.
+
+function slugify(string $text): string {
+    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $text) ?? 'user', '-'));
+    return $slug !== '' ? $slug : 'user';
+}
+
+function detectProvider(?string $override = null): string {
+    if ($override !== null && trim($override) !== '') {
+        return trim($override);
+    }
     $markers = [
-        'Claude Code' => ['CLAUDECODE', 'CLAUDE_CODE', 'CLAUDE_CODE_ENTRYPOINT'],
-        'Gemini CLI' => ['GEMINI_CLI'],
-        'Codex' => ['CODEX_HOME', 'CODEX_THREAD_ID'],
+        'Claude Code'    => ['CLAUDECODE', 'CLAUDE_CODE', 'CLAUDE_CODE_ENTRYPOINT'],
+        'Gemini CLI'     => ['GEMINI_CLI', 'GEMINI_AGENT'],
+        'Codex'          => ['CODEX_HOME', 'CODEX_THREAD_ID'],
         'GitHub Copilot' => ['COPILOT_AGENT', 'GITHUB_COPILOT'],
-        'Cursor' => ['CURSOR_AGENT'],
-        'Windsurf' => ['WINDSURF_AGENT'],
-        'Antigravity' => ['ANTIGRAVITY_AGENT'],
+        'Cursor'         => ['CURSOR_AGENT', 'CURSOR_TRACE_ID'],
+        'Windsurf'       => ['WINDSURF_AGENT'],
+        'Antigravity'    => ['ANTIGRAVITY_AGENT'],
     ];
     foreach ($markers as $provider => $variables) {
         foreach ($variables as $variable) {
-            if (getenv($variable) !== false && trim((string) getenv($variable)) !== '') return $provider;
+            if (getenv($variable) !== false && trim((string) getenv($variable)) !== '') {
+                return $provider;
+            }
         }
     }
-    return 'Tidak terdeteksi';
+    return 'AI Assistant (Auto)';
 }
-function start(): never
-{
-    ensureRoot();
-    if (activeSessions() !== []) fail('Masih ada sesi aktif. Selesaikan dahulu dengan perintah finish.');
-    $fullName = '';
-    git('config user.name', $fullName);
-    $fullName = trim($fullName);
-    if ($fullName === '') fail('Nama Git belum dikonfigurasi. Jalankan: git config user.name "Nama Lengkap"');
-    $provider = detectProvider();
-    fwrite(STDOUT, "Nama dari konfigurasi Git: {$fullName}" . PHP_EOL);
-    fwrite(STDOUT, "Provider terdeteksi: {$provider}" . PHP_EOL);
-    if ($provider === 'Tidak terdeteksi') {
-        $manualProvider = ask('Provider AI (opsional; Enter untuk melewati)');
-        if ($manualProvider !== '') $provider = $manualProvider;
-    }
-    $goal = ask('Tujuan tugas');
-    fwrite(STDOUT, "Masukkan prompt asli dalam satu baris. Jangan sertakan password, token, API key, atau rahasia." . PHP_EOL);
-    $prompt = ask('Prompt asli');
-    if ($goal === '' || $prompt === '') fail('Tujuan dan prompt asli wajib diisi untuk membuat laporan opsional.');
-    if (preg_match('/\b(password|secret|api[_ -]?key|token)\s*[:=]\s*\S+/i', $prompt)) {
-        fail('Prompt tampaknya mengandung rahasia. Hapus rahasia sebelum mencatat.');
-    }
 
-    $id = 'AI-' . date('Ymd-His');
-    $dir = rootPath('docs/ai-usage/sessions');
-    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) fail('Tidak dapat membuat folder sesi.');
-    $file = $dir . DIRECTORY_SEPARATOR . $id . '.md';
-    $content = "# Laporan Sesi AI {$id}\n\n"
-        . "- ID sesi: {$id}\n"
-        . "- Nama Lengkap: {$fullName}\n"
-        . "- Provider/platform: {$provider}\n"
-        . "- Waktu mulai: " . date('c') . "\n"
-        . "- Waktu selesai: Belum selesai\n"
-        . "- Status: AKTIF\n"
-        . "- Commit: BELUM\n\n"
-        . "## Tujuan\n\n{$goal}\n\n"
-        . "## Prompt asli\n\n{$prompt}\n\n"
-        . "## Output/respons AI\n\nBelum dicatat. Tambahkan respons AI yang relevan jika tersedia dari provider. Jangan mengarang output.\n\n"
-        . "## Before\n\nIsi kondisi awal/masalah sebelum perubahan.\n\n"
-        . "## Pekerjaan AI\n\nIsi ringkasan perubahan yang benar-benar dilakukan.\n\n"
-        . "## After\n\nIsi kondisi setelah perubahan dan verifikasi.\n\n"
-        . "## File terdampak\n\nAkan diisi berdasarkan Git.\n\n"
-        . "## Pengujian\n\nBelum dijalankan.\n\n"
-        . "## Catatan verifikasi\n\nBelum diverifikasi.\n";
-    if (file_put_contents($file, $content) === false) fail('Gagal menulis laporan sesi.');
-    fwrite(STDOUT, "Sesi dibuat: docs/ai-usage/sessions/{$id}.md" . PHP_EOL);
-    fwrite(STDOUT, "Setelah coding, periksa diff dan lengkapi bagian Output AI jika diperlukan, lalu jalankan: php scripts/ai-task.php finish" . PHP_EOL);
-    exit(0);
+function sanitizeSecrets(string $text): string {
+    return preg_replace('/\b(password|secret|api[_ -]?key|token|authorization)\s*([:=])\s*\S+/i', '$1$2 [REDACTED]', $text) ?? $text;
 }
-function finish(): never
-{
-    ensureRoot();
-    $sessions = activeSessions();
-    if (count($sessions) !== 1) fail('Harus ada tepat satu sesi aktif. Jalankan start terlebih dahulu.');
-    $file = $sessions[0];
-    $content = file_get_contents($file) ?: '';
 
-    $status = '';
-    git('status --short --untracked-files=all', $status);
-    if (trim($status) === '') fail('Tidak ada perubahan untuk didokumentasikan.');
-    if (preg_match('/^(?:UU|AA|DD|AU|UA|DU|UD)\s/m', $status)) fail('Ada konflik Git. Selesaikan konflik terlebih dahulu.');
+function parseCliArgs(array $argv): array {
+    $options = [];
+    $commands = [];
 
-    $paths = '';
-    git('status --porcelain=v1 --untracked-files=all', $paths);
-    foreach (preg_split('/\R/', trim($paths)) as $line) {
-        if ($line === '') continue;
-        $path = trim(substr($line, 3), "\"");
-        if (preg_match('/(?:^|\/)\.env(?:\..*)?$|(?:^|\/)(?:id_rsa|id_ed25519)$/i', $path)) {
-            fail("File berpotensi rahasia terdeteksi: {$path}");
+    for ($i = 1; $i < count($argv); $i++) {
+        $arg = $argv[$i];
+        if (str_starts_with($arg, '--')) {
+            $opt = substr($arg, 2);
+            if (str_contains($opt, '=')) {
+                [$key, $val] = explode('=', $opt, 2);
+                $options[$key] = $val;
+            } else {
+                if (isset($argv[$i + 1]) && !str_starts_with($argv[$i + 1], '-')) {
+                    $options[$opt] = $argv[++$i];
+                } else {
+                    $options[$opt] = '';
+                }
+            }
+        } elseif (str_starts_with($arg, '-')) {
+            $opt = substr($arg, 1);
+            if (isset($argv[$i + 1]) && !str_starts_with($argv[$i + 1], '-')) {
+                $options[$opt] = $argv[++$i];
+            } else {
+                $options[$opt] = '';
+            }
+        } else {
+            $commands[] = $arg;
         }
     }
 
-    $before = ask('Before — kondisi sebelum perubahan');
-    $work = ask('Pekerjaan AI — apa yang benar-benar diubah');
-    $after = ask('After — kondisi setelah perubahan');
-    if ($before === '' || $work === '' || $after === '') fail('Before, pekerjaan AI, dan after wajib diisi.');
+    return [
+        'mode'    => $commands[0] ?? '',
+        'options' => $options,
+    ];
+}
 
-    fwrite(STDOUT, "Jalankan php artisan test? (y/N): ");
-    $answer = strtolower(trim((string) fgets(STDIN)));
-    $testResult = 'Tidak dijalankan.';
-    if ($answer === 'y' || $answer === 'yes') {
-        $testOutput = '';
-        $code = command('php artisan test', $testOutput);
-        $testResult = "Exit code: {$code}\n\n{$testOutput}";
-        if ($code !== 0) fail("Tes gagal; commit dibatalkan.\n{$testOutput}");
+function autoLog(array $opts = []): never {
+    ensureRoot();
+
+    $identity = getGitIdentity();
+    $fullName = $identity['name'];
+    $email    = $identity['email'];
+    $userSlug = slugify($fullName);
+    $provider = detectProvider($opts['provider'] ?? null);
+
+    $prompt = sanitizeSecrets(trim((string) ($opts['prompt'] ?? '')));
+    if ($prompt === '') {
+        fail('Parameter --prompt wajib diisi oleh AI.');
     }
+
+    $goal = trim((string) ($opts['goal'] ?? ''));
+    if ($goal === '') {
+        $goal = mb_strimwidth(preg_replace('/\s+/', ' ', $prompt) ?? $prompt, 0, 80, '...');
+    }
+
+    $aiOutput   = sanitizeSecrets(trim((string) ($opts['output'] ?? 'Dieksekusi langsung oleh AI pada working tree.')));
+    $before     = trim((string) ($opts['before'] ?? 'Kondisi sebelum perubahan kode.'));
+    $work       = trim((string) ($opts['work'] ?? 'Perubahan kode sesuai prompt pengguna.'));
+    $after      = trim((string) ($opts['after'] ?? 'Perubahan selesai diterapkan.'));
+    $testResult = trim((string) ($opts['test'] ?? 'Tidak dijalankan otomatis.'));
 
     $diffStat = '';
     git('diff --stat', $diffStat);
@@ -160,97 +158,109 @@ function finish(): never
     $untracked = '';
     git('ls-files --others --exclude-standard', $untracked);
     $fileList = trim($nameStatus . ($untracked !== '' ? "\nUntracked:\n" . $untracked : ''));
-
-    $content = preg_replace('/- Status: AKTIF/', '- Status: SIAP DICOMMIT', $content, 1) ?? $content;
-    $content = preg_replace('/- Waktu selesai: Belum selesai/', '- Waktu selesai: ' . date('c'), $content, 1) ?? $content;
-    $content = preg_replace('/## Before\s+.*?\s+## Pekerjaan AI/s', "## Before\n\n{$before}\n\n## Pekerjaan AI", $content, 1) ?? $content;
-    $content = preg_replace('/## Pekerjaan AI\s+.*?\s+## After/s', "## Pekerjaan AI\n\n{$work}\n\n## After", $content, 1) ?? $content;
-    $content = preg_replace('/## After\s+.*?\s+## File terdampak/s', "## After\n\n{$after}\n\n## File terdampak", $content, 1) ?? $content;
-    $content = preg_replace('/## File terdampak\s+.*?\s+## Pengujian/s', "## File terdampak\n\n```text\n{$fileList}\n```\n\nDiff stat:\n```text\n{$diffStat}\n```\n\n## Pengujian", $content, 1) ?? $content;
-    $content = preg_replace('/## Pengujian\s+.*?\s+## Catatan verifikasi/s', "## Pengujian\n\n{$testResult}\n\n## Catatan verifikasi", $content, 1) ?? $content;
-    file_put_contents($file, $content);
-
-    fwrite(STDOUT, "Tipe Conventional Commit: feat, fix, docs, style, refactor, test, chore, perf, build, ci, revert." . PHP_EOL);
-    $type = ask('Tipe commit');
-    $scope = ask('Scope opsional (mis. auth, dashboard, booking; kosongkan jika tidak perlu)');
-    $message = ask('Deskripsi perubahan dalam Bahasa Indonesia');
-    $allowed = ['feat','fix','docs','style','refactor','test','chore','perf','build','ci','revert'];
-    if (!in_array($type, $allowed, true) || $message === '') fail('Tipe/deskripsi commit tidak valid.');
-    if ($scope !== '' && !preg_match('/^[a-z0-9][a-z0-9-]*$/', $scope)) fail('Scope harus berupa huruf kecil, angka, atau tanda hubung.');
-    if (preg_match('/[\r\n]/', $message)) fail('Deskripsi commit harus satu baris.');
-    $fullName = firstField($content, '- Nama Lengkap:');
-    if ($fullName === '') fail('Nama Lengkap tidak ditemukan pada laporan sesi.');
-    $subject = $type . ($scope !== '' ? '(' . $scope . ')' : '') . ': ' . $message . ' (by ' . $fullName . ')';
-
-    fwrite(STDOUT, "\nPerubahan yang akan di-commit:\n{$status}\n");
-    fwrite(STDOUT, "PERIKSA: git add -A memasukkan semua perubahan yang belum di-commit. Pastikan semuanya terkait tugas ini.\nKetik COMMIT untuk mengonfirmasi: ");
-    if (trim((string) fgets(STDIN)) !== 'COMMIT') {
-        $saved = file_get_contents($file) ?: '';
-        $saved = preg_replace('/- Status: SIAP DICOMMIT/', '- Status: AKTIF', $saved, 1) ?? $saved;
-        file_put_contents($file, $saved);
-        fail('Commit dibatalkan. Sesi dikembalikan ke AKTIF; periksa perubahan lalu jalankan finish kembali.');
+    if ($fileList === '') {
+        $fileList = 'Tidak ada file yang dimodifikasi (hanya diskusi/analisis).';
     }
 
+    $id  = 'AI-' . date('Ymd-His');
+    $now = date('Y-m-d H:i:s P');
+    $dir = rootPath('docs/ai-usage/sessions');
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        fail('Tidak dapat membuat folder sesi.');
+    }
+
+    // Format blok riwayat yang akan ditambahkan (append)
+    $sessionEntry = "\n---\n\n"
+        . "## Sesi {$id} — {$now}\n\n"
+        . "- **Identitas Git**: {$fullName} (`{$email}`)\n"
+        . "- **Provider AI**: {$provider}\n"
+        . "- **Tujuan**: {$goal}\n\n"
+        . "### Prompt Asli\n> " . str_replace("\n", "\n> ", $prompt) . "\n\n"
+        . "### Output / Respons AI\n{$aiOutput}\n\n"
+        . "### Ringkasan Perubahan (Before - Work - After)\n"
+        . "- **Before (Kondisi Awal)**: {$before}\n"
+        . "- **Pekerjaan AI**: {$work}\n"
+        . "- **After (Kondisi Akhir)**: {$after}\n"
+        . "- **Pengujian**: {$testResult}\n\n"
+        . "### File Terdampak\n```text\n{$fileList}\n```\n"
+        . ($diffStat !== '' ? "Diff stat:\n```text\n{$diffStat}\n```\n" : '');
+
+    // 1. Gabungkan ke File Riwayat Masing-Masing User
+    $userFileName = "riwayat-{$userSlug}.md";
+    $userFilePath = $dir . DIRECTORY_SEPARATOR . $userFileName;
+    if (!file_exists($userFilePath)) {
+        $userHeader = "# Riwayat Penggunaan AI — {$fullName}\n\n"
+            . "## Identitas Anggota\n"
+            . "- **Nama Lengkap (`user.name`)**: {$fullName}\n"
+            . "- **Email Git (`user.email`)**: {$email}\n"
+            . "- **Pembaruan Terakhir**: {$now}\n";
+        file_put_contents($userFilePath, $userHeader);
+    } else {
+        $existingUser = file_get_contents($userFilePath) ?: '';
+        $existingUser = preg_replace('/- \*\*Pembaruan Terakhir\*\*: .*/', "- **Pembaruan Terakhir**: {$now}", $existingUser, 1) ?? $existingUser;
+        file_put_contents($userFilePath, $existingUser);
+    }
+    file_put_contents($userFilePath, $sessionEntry, FILE_APPEND);
+
+    // 2. Gabungkan ke File Riwayat Seluruh Tim
+    $allFileName = "RIWAYAT-SEMUA-SESI.md";
+    $allFilePath = $dir . DIRECTORY_SEPARATOR . $allFileName;
+    if (!file_exists($allFilePath)) {
+        $allHeader = "# Riwayat Gabungan Seluruh Sesi AI (Semua Anggota)\n\n"
+            . "File ini berisi gabungan seluruh riwayat prompt dan aktivitas AI dari semua anggota tim berdasarkan `git config user.name` dan `git config user.email`.\n";
+        file_put_contents($allFilePath, $allHeader);
+    }
+    file_put_contents($allFilePath, $sessionEntry, FILE_APPEND);
+
+    // 3. Tambahkan baris ke PROMPT-LOG.md
     $promptIndex = rootPath('docs/ai-usage/PROMPT-LOG.md');
-    $indexLine = "| " . basename($file, '.md') . " | " . date('Y-m-d') . " | " . str_replace('|', '/', firstField($content, '- Nama Lengkap:')) . " | " . str_replace('|', '/', firstField($content, '- Provider/platform:')) . " | " . str_replace('|', '/', firstSection($content, '## Tujuan')) . " | `sessions/" . basename($file) . "` | selesai |";
+    $promptDir = dirname($promptIndex);
+    if (!is_dir($promptDir) && !mkdir($promptDir, 0775, true) && !is_dir($promptDir)) {
+        fail('Tidak dapat membuat folder dokumentasi ai-usage.');
+    }
+    if (!file_exists($promptIndex)) {
+        $promptHeader = "# Indeks Prompt AI (Otomatis)\n\n"
+            . "Baris pada tabel ini ditambahkan secara otomatis oleh AI setiap kali pengguna memberikan prompt, menggunakan identitas dari `git config user.name` dan `git config user.email`.\n\n"
+            . "| ID Sesi | Tanggal | Identitas Git (Nama & Email) | Provider | Tujuan | File Riwayat | Status |\n"
+            . "|---|---|---|---|---|---|---|\n";
+        file_put_contents($promptIndex, $promptHeader);
+    }
+    $cleanName   = str_replace('|', '/', "{$fullName} ({$email})");
+    $cleanProv   = str_replace('|', '/', $provider);
+    $cleanGoal   = str_replace('|', '/', $goal);
+    $indexLine   = "| {$id} | " . date('Y-m-d H:i') . " | {$cleanName} | {$cleanProv} | {$cleanGoal} | `sessions/{$userFileName}` | tercatat otomatis |";
     file_put_contents($promptIndex, rtrim(file_get_contents($promptIndex) ?: '') . "\n" . $indexLine . "\n");
 
+    // 4. Tambahkan baris ke CHANGELOG-AI.md
     $changeIndex = rootPath('docs/ai-usage/CHANGELOG-AI.md');
-    $changeLine = "| " . basename($file, '.md') . " | " . str_replace('|', '/', $after) . " | " . str_replace('|', '/', strtok($testResult, "\n")) . " | menunggu commit |";
+    if (!file_exists($changeIndex)) {
+        $changeHeader = "# Indeks Perubahan AI (Otomatis)\n\n"
+            . "| ID Sesi | Identitas Git (Nama & Email) | Ringkasan Perubahan | Pengujian | File Riwayat |\n"
+            . "|---|---|---|---|---|\n";
+        file_put_contents($changeIndex, $changeHeader);
+    }
+    $cleanAfter  = str_replace('|', '/', $after);
+    $cleanTest   = str_replace('|', '/', strtok($testResult, "\n") ?: 'Tidak dijalankan');
+    $changeLine  = "| {$id} | {$cleanName} | {$cleanAfter} | {$cleanTest} | `sessions/{$userFileName}` |";
     file_put_contents($changeIndex, rtrim(file_get_contents($changeIndex) ?: '') . "\n" . $changeLine . "\n");
 
-    $out = '';
-    if (git('add -A', $out) !== 0) fail("git add gagal: {$out}");
-    if (git('diff --cached --check', $out) !== 0) fail("Pemeriksaan diff gagal: {$out}");
-    $staged = '';
-    git('diff --cached --name-only', $staged);
-    if (preg_match('/(?:^|\/)\.env(?:\..*)?$|(?:^|\/)(?:id_rsa|id_ed25519)$/im', $staged)) fail('File rahasia masuk staging. Commit dibatalkan.');
-    if (preg_match('/(^|\/)\.env(?:\..*)?$|(?:^|\/)(?:id_rsa|id_ed25519)$/im', $staged)) fail('File sensitif terdeteksi.');
-
-    if (git('commit -m ' . escapeshellarg($subject), $out) !== 0) fail("Commit gagal:\n{$out}");
-    $hash = '';
-    git('rev-parse --short HEAD', $hash);
-    $hash = trim($hash);
-    $content = file_get_contents($file) ?: '';
-    $content = preg_replace('/- Status: SIAP DICOMMIT/', '- Status: SELESAI', $content, 1) ?? $content;
-    $content = preg_replace('/- Commit: BELUM/', '- Commit: ' . $hash . ' (`' . $subject . '`)' , $content, 1) ?? $content;
-    file_put_contents($file, $content);
-
-    // Update only the newest changelog row, not historical rows.
-    $changeIndexContent = file_get_contents($changeIndex) ?: '';
-    $changeIndexContent = preg_replace('/\| menunggu commit \|\s*$/m', '| ' . $hash . ' |', $changeIndexContent, 1) ?? $changeIndexContent;
-    file_put_contents($changeIndex, $changeIndexContent);
-
-    // The hash is only known after the task commit, so record it in a small follow-up docs commit.
-    $out = '';
-    $metaFiles = 'docs/ai-usage/sessions/' . basename($file) . ' docs/ai-usage/CHANGELOG-AI.md';
-    if (git('add ' . escapeshellarg('docs/ai-usage/sessions/' . basename($file)) . ' ' . escapeshellarg('docs/ai-usage/CHANGELOG-AI.md'), $out) !== 0) {
-        fail("Task commit berhasil ({$hash}), tetapi staging metadata gagal. Periksa status Git. {$out}");
-    }
-    if (git('commit -m ' . escapeshellarg('docs: catat metadata sesi AI ' . basename($file, '.md') . ' (by ' . $fullName . ')' ), $out) !== 0) {
-        fail("Task commit berhasil ({$hash}), tetapi commit metadata gagal. Periksa status Git. {$out}");
-    }
-    fwrite(STDOUT, "Task commit berhasil: {$subject} ({$hash})\n");
-    fwrite(STDOUT, "Hash task dicatat dalam commit dokumentasi terpisah.\nTidak ada push yang dilakukan.\n");
+    fwrite(STDOUT, "Riwayat AI otomatis ditambahkan ke:\n- docs/ai-usage/sessions/{$userFileName}\n- docs/ai-usage/sessions/{$allFileName}\n");
     exit(0);
 }
-function firstField(string $content, string $prefix): string
-{
-    foreach (preg_split('/\R/', $content) as $line) if (str_starts_with($line, $prefix)) return trim(substr($line, strlen($prefix)));
-    return '';
+
+$cli = parseCliArgs($argv);
+$mode = $cli['mode'];
+
+if ($mode === 'auto') {
+    autoLog($cli['options']);
 }
-function firstSection(string $content, string $heading): string
-{
-    if (preg_match('/' . preg_quote($heading, '/') . '\s+(.*?)\s+\n## /s', $content, $m)) return trim(str_replace("\n", ' ', $m[1]));
-    return '';
-}
-ensureRoot();
-$mode = $argv[1] ?? '';
-if ($mode === 'start') start();
-if ($mode === 'finish') finish();
+
 if ($mode === 'validate') {
-    fwrite(STDOUT, "Validasi aturan AI: pencatatan sesi bersifat opsional; commit tidak diblokir oleh sesi AI.\n");
+    ensureRoot();
+    $identity = getGitIdentity();
+    fwrite(STDOUT, "Konfigurasi siap. Git User: {$identity['name']} <{$identity['email']}>\n");
     exit(0);
 }
-fwrite(STDERR, "Penggunaan: php scripts/ai-task.php start|finish|validate\n");
+
+fwrite(STDERR, "Penggunaan: php scripts/ai-task.php auto --provider=\"...\" --goal=\"...\" --prompt=\"...\" [--before=\"...\"] [--work=\"...\"] [--after=\"...\"] [--output=\"...\"]\n");
 exit(2);

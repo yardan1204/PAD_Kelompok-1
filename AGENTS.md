@@ -2,13 +2,12 @@
 
 File ini adalah sumber aturan utama. Sebelum mengubah kode, baca file ini dan `README-AI-RULES.md`.
 
-## 1. Identitas dan pencatatan (OPSIONAL)
-- Pengguna boleh langsung memakai AI tanpa menjalankan script pencatatan.
-- Jika laporan AI diperlukan, pengguna dapat menjalankan `php scripts/ai-task.php start`; script mengambil Nama Lengkap dari `git config user.name` dan mencoba mendeteksi provider secara otomatis.
-- Jangan meminta NIM, email, nomor telepon, username, atau informasi pribadi lain untuk laporan AI. Email Git hanya dikelola pengguna dalam konfigurasi Git.
-- Provider tidak selalu dapat dideteksi dari aplikasi desktop/web. Jika tidak terdeteksi, script akan menawarkan input provider secara opsional.
-- Jangan mengklaim prompt atau respons AI terekam otomatis. Rekam hanya informasi yang benar-benar tersedia; jangan mengarang prompt, output, waktu, hasil tes, atau fakta perubahan.
-- Jangan mencatat kredensial, token, password, API key, data pribadi, atau isi `.env`.
+## 1. Identitas dan Pencatatan Otomatis — WAJIB BAGI AI
+- **Pengguna TIDAK PERLU menjalankan script `start` atau `finish` secara manual.** Setelah pengguna melakukan `git clone` dan mengatur `git config user.name` serta `git config user.email`, seluruh pencatatan dilakukan otomatis oleh AI.
+- Nama Lengkap dan Email diambil otomatis oleh script dari `git config user.name` dan `git config user.email`. Jangan meminta NIM, nama, email, atau data pribadi lain di chat.
+- **Setiap kali selesai menjawab prompt atau mengubah kode**, AI **WAJIB** langsung mengeksekusi perintah berikut di terminal tanpa menunggu diminta pengguna:
+  ```bash
+  php scripts/ai-task.php auto --provider="NAMA_AI" --goal="Tujuan singkat" --prompt="Prompt asli user" --output="Ringkasan jawaban AI" --before="Kondisi awal" --work="Perubahan yang dilakukan" --after="Kondisi akhir" --test="Hasil tes / Tidak dijalankan"
 
 ## 2. Aturan perubahan kode — WAJIB
 - **Lakukan perubahan sekecil mungkin dan hanya pada baris atau bagian yang berkaitan langsung dengan permintaan pengguna.**
@@ -59,7 +58,6 @@ Gunakan Git diff sebagai bukti perubahan. Hindari menyalin seluruh file ke lapor
 - Deskripsi harus spesifik, singkat, berbahasa Indonesia, dan menjelaskan perubahan; jangan gunakan pesan generik seperti `perbaikan` atau `update` saja.
 - Nama setelah `(by ...)` sebaiknya sama dengan `git config user.name`. Jangan menebak atau mengambil nama dari username perangkat.
 - Git juga menyimpan author/committer sesuai konfigurasi Git lokal. Jika nama di riwayat Git tidak sesuai, minta pemilik perangkat memperbaiki `git config user.name` dan `git config user.email`; jangan mengarang email atau mengubahnya tanpa izin.
-- Pencatatan sesi dan penggunaan `php scripts/ai-task.php finish` bersifat opsional.
 - Commit hanya setelah meninjau `git status` dan `git diff`, memastikan perubahan yang akan di-commit memang terkait tugas, dan memastikan tidak ada rahasia.
 - Jangan push otomatis.
 - Jangan menggunakan `--no-verify`, mengubah riwayat Git, atau menghapus perubahan pengguna.
@@ -67,4 +65,4 @@ Gunakan Git diff sebagai bukti perubahan. Hindari menyalin seluruh file ke lapor
 - Jika ada konflik, tes gagal, file rahasia, atau perubahan yang tidak terkait, hentikan proses commit dan laporkan masalahnya.
 
 ## 6. Laporan akhir
-Sampaikan ringkasan, file dan bagian yang berubah, before–after, serta tes yang benar-benar dijalankan. Sebutkan lokasi laporan sesi hanya jika pencatatan opsional digunakan, dan hash commit jika tersedia.
+Sampaikan ringkasan, file dan bagian yang berubah, before–after, serta tes yang benar-benar dijalankan. Sebutkan lokasi file riwayat sesi (`docs/ai-usage/sessions/riwayat-<nama>.md` dan `docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md`) yang telah diperbarui secara otomatis, serta hash commit jika tersedia.
