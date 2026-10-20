@@ -1,8 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\UtilizationDashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -36,3 +38,47 @@ Route::post('/schedules', [
     ScheduleController::class,
     'store',
 ])->name('schedules.store');
+
+// BOOKING
+
+Route::get('/bookings', [
+    BookingController::class,
+    'index',
+])->name('bookings.index');
+
+Route::get('/bookings/create', [
+    BookingController::class,
+    'create',
+])->name('bookings.create');
+
+Route::post('/bookings', [
+    BookingController::class,
+    'store',
+])->name('bookings.store');
+
+Route::post('/bookings/{booking}/approve', [
+    BookingController::class,
+    'approve',
+])->name('bookings.approve');
+
+Route::post('/bookings/{booking}/reject', [
+    BookingController::class,
+    'reject',
+])->name('bookings.reject');
+
+Route::post('/bookings/{booking}/check-in', [
+    BookingController::class,
+    'checkIn',
+])->name('bookings.check-in');
+
+Route::post('/bookings/{booking}/check-out', [
+    BookingController::class,
+    'checkOut',
+])->name('bookings.check-out');
+
+// DASHBOARD UTILISASI
+
+Route::get('/dashboard/utilization', [
+    UtilizationDashboardController::class,
+    'index',
+])->name('dashboard.utilization');
