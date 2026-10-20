@@ -6,6 +6,10 @@
      di server; pesannya tampil lewat layouts/partials/flash dan @error di bawah. --}}
 @extends('layouts.app')
 
+@php
+    $roles = $roles ?? ['Mahasiswa', 'Dosen', 'Admin Akademik', 'Kepala Laboratorium', 'Pimpinan Fakultas'];
+@endphp
+
 @section('title', 'Ajukan Booking')
 
 @section('content')
