@@ -11,6 +11,11 @@ use App\Services\BookingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
+/**
+ * Controller untuk menangani alur pemesanan (booking) ruangan:
+ * pengajuan, persetujuan (approve), penolakan (reject), dan simulasi scan QR (check-in/check-out).
+ * Menerapkan pola Skinny Controller di mana seluruh logika bisnis didelegasikan ke BookingService.
+ */
 class BookingController extends Controller
 {
     public function __construct(
@@ -18,6 +23,9 @@ class BookingController extends Controller
     ) {
     }
 
+    /**
+     * Menampilkan daftar peminjaman ruangan dengan paginasi.
+     */
     public function index(): View
     {
         return view('bookings.index', [
@@ -25,6 +33,9 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Menampilkan form pengajuan peminjaman ruangan.
+     */
     public function create(): View
     {
         return view('bookings.create', [
@@ -32,6 +43,9 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Memproses pengajuan peminjaman baru oleh user.
+     */
     public function store(
         StoreBookingRequest $request
     ): RedirectResponse {
@@ -48,6 +62,9 @@ class BookingController extends Controller
             );
     }
 
+    /**
+     * Menyetujui peminjaman oleh pihak berwenang (Kepala Lab / Admin).
+     */
     public function approve(
         ApproveBookingRequest $request,
         Booking $booking
@@ -59,6 +76,9 @@ class BookingController extends Controller
             ->with('success', 'Peminjaman disetujui.');
     }
 
+    /**
+     * Menolak peminjaman beserta alasan penolakan.
+     */
     public function reject(
         RejectBookingRequest $request,
         Booking $booking
@@ -74,6 +94,9 @@ class BookingController extends Controller
             ->with('success', 'Peminjaman ditolak.');
     }
 
+    /**
+     * Simulasi check-in pengguna di ruangan menggunakan token QR code.
+     */
     public function checkIn(
         QrScanRequest $request,
         Booking $booking
@@ -88,6 +111,9 @@ class BookingController extends Controller
             ->with('success', 'Check-in berhasil. Ruangan kini terpakai.');
     }
 
+    /**
+     * Simulasi check-out pengguna setelah selesai memakai ruangan.
+     */
     public function checkOut(
         QrScanRequest $request,
         Booking $booking

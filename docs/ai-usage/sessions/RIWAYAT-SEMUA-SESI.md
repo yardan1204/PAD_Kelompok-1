@@ -275,3 +275,150 @@ Diff stat:
  routes/web.php                          | 19 ++++++++++++++++---
  2 files changed, 17 insertions(+), 4 deletions(-)
 ```
+
+---
+
+## Sesi AI-20261020-231558 — 2026-10-20 23:15:58 +00:00
+
+- **Identitas Git**: Yardan Zufar Adiwangsa (`yardanadiwangsa4@gmail.com`)
+- **Provider AI**: Gemini
+- **Tujuan**: Evaluasi kesesuaian kodingan dengan rubrikasi MVC, Pola Desain, dan Pemeliharaan
+
+### Prompt Asli
+> Apakah kodingan di samping sudah sesuai dengan rubrikasi di bawah ini: - Struktur MVC dan pemisahan tanggung jawab - Penerapan pola desain pendukung - Kemudahan pemeliharaan
+
+### Output / Respons AI
+Memberikan evaluasi lengkap dan komprehensif mengenai kepatuhan kode terhadap 3 kriteria rubrikasi.
+
+### Ringkasan Perubahan (Before - Work - After)
+- **Before (Kondisi Awal)**: Pemeriksaan kode proyek
+- **Pekerjaan AI**: Menganalisis arsitektur MVC, implementasi Strategy Pattern, dan extensibility codebase.
+- **After (Kondisi Akhir)**: Laporan evaluasi rubrikasi selesai disusun.
+- **Pengujian**: Analisis statis kode dan arsitektur
+
+### File Terdampak
+```text
+Tidak ada file yang dimodifikasi (hanya diskusi/analisis).
+```
+
+---
+
+## Sesi AI-20261020-232700 — 2026-10-20 23:27:00 +00:00
+
+- **Identitas Git**: Yardan Zufar Adiwangsa (`yardanadiwangsa4@gmail.com`)
+- **Provider AI**: Gemini
+- **Tujuan**: Menyesuaikan UI dashboard dan memastikan dashboard muncul di setiap halaman
+
+### Prompt Asli
+> Untuk halaman dashboard pastikan muncul di setiap halaman, dan untuk UI dari dashboard tolong di sesuaikan terlebih dahulu
+
+### Output / Respons AI
+Memperbarui routes agar / langsung merender dashboard, mengintegrasikan layout app ke dashboard.utilization dengan desain Tailwind modern dan kartu KPI, serta meloloskan seluruh unit & feature test.
+
+### Ringkasan Perubahan (Before - Work - After)
+- **Before (Kondisi Awal)**: Halaman / menampilkan halaman welcome Laravel, view dashboard.utilization masih berupa placeholder HTML polos tanpa navbar/layout, dan badge status belum mendukung lowercase normal/underutilized.
+- **Pekerjaan AI**: 1. Redirect/route '/' langsung ke dashboard. 2. Redesign dashboard.utilization.blade.php menggunakan layouts.app dan Tailwind CSS. 3. Update status-badge.blade.php dan nav-link.blade.php. 4. Aktifkan RefreshDatabase di ExampleTest.
+- **After (Kondisi Akhir)**: Dashboard kini menjadi halaman utama dan terhubung di navbar setiap halaman dengan UI yang modern dan responsif. 14 test lolos 100%.
+- **Pengujian**: php artisan test (14 passed, 31 assertions)
+
+### File Terdampak
+```text
+warning: in the working copy of 'docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/ai-usage/sessions/riwayat-yardan-zufar-adiwangsa.md', CRLF will be replaced by LF the next time Git touches it
+M	docs/ai-usage/CHANGELOG-AI.md
+M	docs/ai-usage/PROMPT-LOG.md
+M	docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md
+M	docs/ai-usage/sessions/riwayat-yardan-zufar-adiwangsa.md
+M	resources/views/components/nav-link.blade.php
+M	resources/views/components/status-badge.blade.php
+M	resources/views/dashboard/utilization.blade.php
+M	resources/views/layouts/app.blade.php
+M	routes/web.php
+M	tests/Feature/ExampleTest.php
+```
+Diff stat:
+```text
+warning: in the working copy of 'docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/ai-usage/sessions/riwayat-yardan-zufar-adiwangsa.md', CRLF will be replaced by LF the next time Git touches it
+ docs/ai-usage/CHANGELOG-AI.md                      |   1 +
+ docs/ai-usage/PROMPT-LOG.md                        |   1 +
+ docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md       |  25 ++
+ .../sessions/riwayat-yardan-zufar-adiwangsa.md     |  27 +-
+ resources/views/components/nav-link.blade.php      |   4 +-
+ resources/views/components/status-badge.blade.php  |   7 +-
+ resources/views/dashboard/utilization.blade.php    | 370 ++++++++++++++++++---
+ resources/views/layouts/app.blade.php              |   2 +-
+ routes/web.php                                     |   7 +-
+ tests/Feature/ExampleTest.php                      |   4 +-
+ 10 files changed, 389 insertions(+), 59 deletions(-)
+```
+
+---
+
+## Sesi AI-20261020-233840 — 2026-10-20 23:38:40 +00:00
+
+- **Identitas Git**: Yardan Zufar Adiwangsa (`yardanadiwangsa4@gmail.com`)
+- **Provider AI**: Gemini
+- **Tujuan**: Menambahkan komentar dokumentasi pada kode custom non-bawaan Laravel dan mengidentifikasi file tak terpakai
+
+### Prompt Asli
+> tambahkan juga comment comment pada kodingan yang sekiranya bukan dari bawaan laravel, lalu tolong hapus juga file file yang tidak terpakai, untuk file yang mau di hapus buatkan daftarnya dulu nanti saya review (Kalau ada file yang tidak terpakai)
+
+### Output / Respons AI
+Menambahkan komentar/docblock pada RoomController, ScheduleController, BookingController, UtilizationDashboardController, AppServiceProvider, Form Requests, dan routes/web.php, serta menyusun daftar usulan file yang tidak terpakai untuk direview user.
+
+### Ringkasan Perubahan (Before - Work - After)
+- **Before (Kondisi Awal)**: Banyak class controller, request, service provider, dan routes belum memiliki komentar penjelasan peran dan alur logikanya.
+- **Pekerjaan AI**: 1. Tambahkan komentar penjelasan pada Controller, Form Request, AppServiceProvider, dan routes/web.php. 2. Identifikasi dan inventarisasi file tidak terpakai dalam proyek.
+- **After (Kondisi Akhir)**: Kode kini terdokumentasi rapi, 14 test lulus 100%, dan daftar file usulan hapus siap direview.
+- **Pengujian**: php artisan test (14 passed, 31 assertions)
+
+### File Terdampak
+```text
+warning: in the working copy of 'docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/ai-usage/sessions/riwayat-yardan-zufar-adiwangsa.md', CRLF will be replaced by LF the next time Git touches it
+M	app/Http/Controllers/BookingController.php
+M	app/Http/Controllers/RoomController.php
+M	app/Http/Controllers/ScheduleController.php
+M	app/Http/Controllers/UtilizationDashboardController.php
+M	app/Http/Requests/ApproveBookingRequest.php
+M	app/Http/Requests/RejectBookingRequest.php
+M	app/Http/Requests/StoreRoomRequest.php
+M	app/Http/Requests/StoreScheduleRequest.php
+M	app/Providers/AppServiceProvider.php
+M	docs/ai-usage/CHANGELOG-AI.md
+M	docs/ai-usage/PROMPT-LOG.md
+M	docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md
+M	docs/ai-usage/sessions/riwayat-yardan-zufar-adiwangsa.md
+M	resources/views/components/nav-link.blade.php
+M	resources/views/components/status-badge.blade.php
+M	resources/views/dashboard/utilization.blade.php
+M	resources/views/layouts/app.blade.php
+M	routes/web.php
+M	tests/Feature/ExampleTest.php
+```
+Diff stat:
+```text
+warning: in the working copy of 'docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/ai-usage/sessions/riwayat-yardan-zufar-adiwangsa.md', CRLF will be replaced by LF the next time Git touches it
+ app/Http/Controllers/BookingController.php         |  26 ++
+ app/Http/Controllers/RoomController.php            |  15 +
+ app/Http/Controllers/ScheduleController.php        |  10 +
+ .../Controllers/UtilizationDashboardController.php |   5 +
+ app/Http/Requests/ApproveBookingRequest.php        |   6 +-
+ app/Http/Requests/RejectBookingRequest.php         |   9 +-
+ app/Http/Requests/StoreRoomRequest.php             |   9 +-
+ app/Http/Requests/StoreScheduleRequest.php         |   9 +-
+ app/Providers/AppServiceProvider.php               |  17 +-
+ docs/ai-usage/CHANGELOG-AI.md                      |   2 +
+ docs/ai-usage/PROMPT-LOG.md                        |   2 +
+ docs/ai-usage/sessions/RIWAYAT-SEMUA-SESI.md       |  77 +++++
+ .../sessions/riwayat-yardan-zufar-adiwangsa.md     |  79 ++++-
+ resources/views/components/nav-link.blade.php      |   4 +-
+ resources/views/components/status-badge.blade.php  |   7 +-
+ resources/views/dashboard/utilization.blade.php    | 370 ++++++++++++++++++---
+ resources/views/layouts/app.blade.php              |   2 +-
+ routes/web.php                                     |  30 +-
+ tests/Feature/ExampleTest.php                      |   4 +-
+ 19 files changed, 609 insertions(+), 74 deletions(-)
+```

@@ -5,14 +5,21 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Form Request untuk validasi pembuatan data ruangan master baru.
+ * Memastikan kapasitas ruangan valid, kode unik, dan status berada dalam daftar yang diizinkan.
+ */
 class StoreRoomRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Sementara untuk pengembangan lokal.
+        // Otorisasi terbuka untuk kebutuhan lingkungan pengembangan lokal.
         return true;
     }
 
+    /**
+     * Aturan validasi masukan form ruangan.
+     */
     public function rules(): array
     {
         return [

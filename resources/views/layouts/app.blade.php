@@ -31,7 +31,7 @@
             </a>
 
             <nav class="flex flex-wrap gap-1 text-sm">
-                <x-nav-link route="dashboard" active="dashboard*">Dashboard</x-nav-link>
+                <x-nav-link route="dashboard" :active="['dashboard*', 'home']">Dashboard</x-nav-link>
                 <x-nav-link route="rooms.index" active="rooms.*">Ruang &amp; Lab</x-nav-link>
                 <x-nav-link route="schedules.index" active="schedules.*">Jadwal</x-nav-link>
                 <x-nav-link route="bookings.index" active="bookings.*">Booking</x-nav-link>
