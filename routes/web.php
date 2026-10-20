@@ -56,7 +56,7 @@ Route::post('/bookings', [
     'store',
 ])->name('bookings.store');
 
-Route::post('/bookings/{booking}/approve', [
+Route::match(['post', 'patch'], '/bookings/{booking}/approve', [
     BookingController::class,
     'approve',
 ])->name('bookings.approve');
@@ -66,15 +66,23 @@ Route::post('/bookings/{booking}/reject', [
     'reject',
 ])->name('bookings.reject');
 
-Route::post('/bookings/{booking}/check-in', [
+Route::match(['post', 'patch'], '/bookings/{booking}/check-in', [
     BookingController::class,
     'checkIn',
 ])->name('bookings.check-in');
+Route::match(['post', 'patch'], '/bookings/{booking}/check-in', [
+    BookingController::class,
+    'checkIn',
+])->name('bookings.checkin');
 
-Route::post('/bookings/{booking}/check-out', [
+Route::match(['post', 'patch'], '/bookings/{booking}/check-out', [
     BookingController::class,
     'checkOut',
 ])->name('bookings.check-out');
+Route::match(['post', 'patch'], '/bookings/{booking}/check-out', [
+    BookingController::class,
+    'checkOut',
+])->name('bookings.checkout');
 
 // DASHBOARD UTILISASI
 
@@ -82,3 +90,8 @@ Route::get('/dashboard/utilization', [
     UtilizationDashboardController::class,
     'index',
 ])->name('dashboard.utilization');
+
+Route::get('/dashboard', [
+    UtilizationDashboardController::class,
+    'index',
+])->name('dashboard');

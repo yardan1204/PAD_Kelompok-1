@@ -12,7 +12,7 @@ class RoomController extends Controller
 {
     public function index(): View
     {
-        $rooms = Room::with('academicUnit')
+        $rooms = Room::with(['academicUnit', 'facilities'])
             ->orderBy('name')
             ->paginate(10);
 
