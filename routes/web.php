@@ -6,11 +6,18 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\UtilizationDashboardController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// ==========================================
+// 1. HALAMAN UTAMA (LANDING / HOME)
+// ==========================================
+// Rute awal '/' langsung diarahkan ke Dashboard Utilisasi
+Route::get('/', [
+    UtilizationDashboardController::class,
+    'index',
+])->name('home');
 
-// ROOM
+// ==========================================
+// 2. MANAJEMEN RUANG & LAB (ROOMS)
+// ==========================================
 
 Route::get('/rooms', [
     RoomController::class,
@@ -27,7 +34,9 @@ Route::post('/rooms', [
     'store',
 ])->name('rooms.store');
 
-// SCHEDULE
+// ==========================================
+// 3. JADWAL KULIAH & PRAKTIKUM (SCHEDULES)
+// ==========================================
 
 Route::get('/schedules', [
     ScheduleController::class,
@@ -39,8 +48,11 @@ Route::post('/schedules', [
     'store',
 ])->name('schedules.store');
 
-// BOOKING
+// ==========================================
+// 4. PEMESANAN RUANGAN (BOOKINGS)
+// ==========================================
 
+// Daftar dan form pengajuan
 Route::get('/bookings', [
     BookingController::class,
     'index',
@@ -56,7 +68,8 @@ Route::post('/bookings', [
     'store',
 ])->name('bookings.store');
 
-Route::post('/bookings/{booking}/approve', [
+// Verifikasi: Approve & Reject oleh Kepala Lab / Admin
+Route::match(['post', 'patch'], '/bookings/{booking}/approve', [
     BookingController::class,
     'approve',
 ])->name('bookings.approve');
@@ -66,19 +79,27 @@ Route::post('/bookings/{booking}/reject', [
     'reject',
 ])->name('bookings.reject');
 
-Route::post('/bookings/{booking}/check-in', [
+// Simulasi Kehadiran: Check-In & Check-Out via Scan QR
+Route::match(['post', 'patch'], '/bookings/{booking}/check-in', [
     BookingController::class,
     'checkIn',
-])->name('bookings.check-in');
+])->name('bookings.checkin');
 
-Route::post('/bookings/{booking}/check-out', [
+Route::match(['post', 'patch'], '/bookings/{booking}/check-out', [
     BookingController::class,
     'checkOut',
-])->name('bookings.check-out');
+])->name('bookings.checkout');
 
-// DASHBOARD UTILISASI
+// ==========================================
+// 5. LIVE DASHBOARD UTILISASI
+// ==========================================
 
 Route::get('/dashboard/utilization', [
     UtilizationDashboardController::class,
     'index',
 ])->name('dashboard.utilization');
+
+Route::get('/dashboard', [
+    UtilizationDashboardController::class,
+    'index',
+])->name('dashboard');

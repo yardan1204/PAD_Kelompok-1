@@ -1,5 +1,5 @@
 {{-- Status checked_in -> simulasi scan QR check-out (event real-time) --}}
-<form method="POST" action="{{ route('bookings.check-out', $booking) }}">
+<form method="POST" action="{{ route('bookings.checkout', $booking) }}">
     @csrf
     <button type="submit"
             class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1">

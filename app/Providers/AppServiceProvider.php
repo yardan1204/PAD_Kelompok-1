@@ -15,14 +15,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-      $this->app->bind(UtilizationCalculatorContext::class, function ($app) {
-        $strategies = [
-            $app->make(ClassroomUtilizationStrategy::class),
-            $app->make(LaboratoryUtilizationStrategy::class),
-        ];
+        // Pola Desain Pendukung (Strategy Pattern):
+        // Mendaftarkan seluruh implementasi strategi utilisasi konkret ke dalam UtilizationCalculatorContext.
+        // Jika terdapat tipe ruangan baru (misal: auditorium), cukup buat class strateginya dan tambahkan di array ini.
+        $this->app->bind(UtilizationCalculatorContext::class, function ($app) {
+            $strategies = [
+                $app->make(ClassroomUtilizationStrategy::class),
+                $app->make(LaboratoryUtilizationStrategy::class),
+            ];
 
-        return new UtilizationCalculatorContext($strategies);
-    });
+            return new UtilizationCalculatorContext($strategies);
+        });
     }
 
     /**

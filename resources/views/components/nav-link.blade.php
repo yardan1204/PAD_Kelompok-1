@@ -6,8 +6,8 @@
     <a href="{{ route($route) }}"
        @class([
            'rounded-md px-3 py-1.5 font-medium transition',
-           'bg-teal-50 text-teal-800' => request()->routeIs($active),
-           'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => ! request()->routeIs($active),
+           'bg-teal-50 text-teal-800' => request()->routeIs(...(array) $active),
+           'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => ! request()->routeIs(...(array) $active),
        ])>
         {{ $slot }}
     </a>

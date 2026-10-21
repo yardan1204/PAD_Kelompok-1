@@ -7,8 +7,15 @@ use App\Models\Schedule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
+/**
+ * Controller untuk mengelola jadwal resmi perkuliahan dan praktikum.
+ * Jadwal ini menjadi dasar perhitungan scheduled utilization pada ruangan.
+ */
 class ScheduleController extends Controller
 {
+    /**
+     * Menampilkan daftar jadwal perkuliahan/praktikum terurut berdasarkan waktu mulai.
+     */
     public function index(): View
     {
         $schedules = Schedule::with('room')
@@ -20,6 +27,9 @@ class ScheduleController extends Controller
         ]);
     }
 
+    /**
+     * Menyimpan jadwal baru dengan status default 'scheduled'.
+     */
     public function store(
         StoreScheduleRequest $request
     ): RedirectResponse {
