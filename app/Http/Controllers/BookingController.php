@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\BookingException;
 use App\Http\Requests\ApproveBookingRequest;
 use App\Http\Requests\QrScanRequest;
 use App\Http\Requests\RejectBookingRequest;
@@ -35,10 +36,16 @@ class BookingController extends Controller
     public function store(
         StoreBookingRequest $request
     ): RedirectResponse {
-        $this->bookingService->submitBooking(
-            $request->user(),
-            $request->validated()
-        );
+        try {
+            $this->bookingService->submitBooking(
+                $request->user(),
+                $request->validated()
+            );
+        } catch (BookingException $exception) {
+            return back()
+                ->withInput()
+                ->with('error', $exception->getMessage());
+        }
 
         return redirect()
             ->route('bookings.index')
@@ -52,7 +59,11 @@ class BookingController extends Controller
         ApproveBookingRequest $request,
         Booking $booking
     ): RedirectResponse {
-        $this->bookingService->approve($booking, $request->user());
+        try {
+            $this->bookingService->approve($booking, $request->user());
+        } catch (BookingException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return redirect()
             ->route('bookings.index')
@@ -63,11 +74,15 @@ class BookingController extends Controller
         RejectBookingRequest $request,
         Booking $booking
     ): RedirectResponse {
-        $this->bookingService->reject(
-            $booking,
-            $request->user(),
-            $request->validated('rejection_reason')
-        );
+        try {
+            $this->bookingService->reject(
+                $booking,
+                $request->user(),
+                $request->validated('rejection_reason')
+            );
+        } catch (BookingException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return redirect()
             ->route('bookings.index')
@@ -78,10 +93,14 @@ class BookingController extends Controller
         QrScanRequest $request,
         Booking $booking
     ): RedirectResponse {
-        $this->bookingService->checkIn(
-            $booking,
-            $request->validated('qr_token')
-        );
+        try {
+            $this->bookingService->checkIn(
+                $booking,
+                $request->validated('qr_token')
+            );
+        } catch (BookingException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return redirect()
             ->route('bookings.index')
@@ -92,10 +111,14 @@ class BookingController extends Controller
         QrScanRequest $request,
         Booking $booking
     ): RedirectResponse {
-        $this->bookingService->checkOut(
-            $booking,
-            $request->validated('qr_token')
-        );
+        try {
+            $this->bookingService->checkOut(
+                $booking,
+                $request->validated('qr_token')
+            );
+        } catch (BookingException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return redirect()
             ->route('bookings.index')

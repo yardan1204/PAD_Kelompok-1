@@ -83,6 +83,37 @@ class Room extends BaseCampusEntity
         $this->setAttribute('status', $status);
     }
 
+    // Status pemakaian ruangan saat ini untuk dashboard live
+    public function getLiveStatus(): string
+    {
+        if ($this->getStatus() === 'maintenance') {
+            return 'maintenance';
+        }
+
+        $now = now();
+
+        $occupied = $this->bookings()
+            ->whereIn('status', [
+                Booking::STATUS_APPROVED,
+                Booking::STATUS_CHECKED_IN,
+            ])
+            ->where('start_time', '<=', $now)
+            ->where('end_time', '>=', $now)
+            ->exists();
+
+        if ($occupied) {
+            return 'occupied';
+        }
+
+        $booked = $this->bookings()
+            ->where('status', Booking::STATUS_APPROVED)
+            ->where('start_time', '>', $now)
+            ->where('start_time', '<=', $now->copy()->addHours(2))
+            ->exists();
+
+        return $booked ? 'booked' : 'available';
+    }
+
     // Mutator: validasi kapasitas untuk seluruh assignment Eloquent
     protected function capacity(): Attribute
     {

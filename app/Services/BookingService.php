@@ -39,13 +39,23 @@ class BookingService
      *
      * @throws BookingException
      */
-    public function submitBooking(User $user, array $data): Booking
+    public function submitBooking(?User $user, array $data): Booking
     {
         $room = Room::findOrFail($data['room_id']);
+
+        $user ??= User::firstOrCreate(
+            ['email' => 'walkin@campus.local'],
+            [
+                'name' => 'Walk-in Guest',
+                'password' => bcrypt(Str::random(32)),
+            ]
+        );
 
         $booking = new Booking([
             'room_id' => $room->id,
             'user_id' => $user->id,
+            'requester_name' => $data['requester_name'] ?? $user->name,
+            'requester_role' => $data['requester_role'] ?? null,
             'purpose' => $data['purpose'],
             'participant_count' => $data['participant_count'],
             'start_time' => $data['start_time'],
