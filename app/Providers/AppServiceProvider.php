@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
             $strategies = [
                 $app->make(ClassroomUtilizationStrategy::class),
                 $app->make(LaboratoryUtilizationStrategy::class),
+                $app->make(\App\Strategies\AuditoriumUtilizationStrategy::class),
             ];
 
             return new UtilizationCalculatorContext($strategies);
