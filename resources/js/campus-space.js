@@ -501,19 +501,14 @@
     // Deteksi koneksi jaringan lambat & kontrol affordance skeleton loading
     function initNetworkAwareSkeleton() {
         var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        var banner = document.getElementById('cs-network-banner');
 
         function isSlowNetwork() {
             if (!conn) {
                 return false;
             }
-            // effectiveType: slow-2g, 2g, 3g
             var isSlowType = conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || conn.effectiveType === '3g';
-            // downlink < 1.5 Mbps
             var isLowBandwidth = typeof conn.downlink === 'number' && conn.downlink < 1.5;
-            // rtt (latency) > 500 ms
             var isHighLatency = typeof conn.rtt === 'number' && conn.rtt > 500;
-            // Mode hemat data (saveData)
             var isSaveData = Boolean(conn.saveData);
 
             return isSlowType || isLowBandwidth || isHighLatency || isSaveData;
@@ -523,25 +518,11 @@
             var slow = isSlowNetwork();
             if (slow) {
                 document.documentElement.classList.add('cs-slow-network');
-                if (banner) {
-                    banner.setAttribute('data-active', 'true');
-                    banner.hidden = false;
-                    var speed = conn && conn.downlink ? conn.downlink + ' Mbps' : '< 1.5 Mbps';
-                    var latency = conn && conn.rtt ? conn.rtt + ' ms' : '> 500 ms';
-                    var info = banner.querySelector('[data-network-info]');
-                    if (info) {
-                        info.textContent = 'Koneksi lambat terdeteksi (kecepatan ' + speed + ', latensi ' + latency + '). Mengaktifkan mode kerangka konten (skeleton loading)...';
-                    }
-                }
                 document.querySelectorAll('[data-skeleton-container]').forEach(function (el) {
                     el.classList.add('is-skeleton-active');
                 });
             } else {
                 document.documentElement.classList.remove('cs-slow-network');
-                if (banner) {
-                    banner.removeAttribute('data-active');
-                    banner.hidden = true;
-                }
                 document.querySelectorAll('[data-skeleton-container]').forEach(function (el) {
                     el.classList.remove('is-skeleton-active');
                 });
@@ -554,8 +535,320 @@
         }
     }
 
+    // SPA-Like Navigation with Contextual Skeleton Transitions
+    function initSpaNavigation() {
+        if (window.__csSpaInit) {
+            return;
+        }
+        window.__csSpaInit = true;
+
+        function getSkeletonHtml(url) {
+            var path = '';
+            try {
+                path = new URL(url, window.location.origin).pathname;
+            } catch (e) {
+                path = url;
+            }
+
+            // Halaman Jelajahi / Kelola Ruangan
+            if (path.indexOf('/rooms') !== -1 && path.indexOf('/create') === -1 && path.indexOf('/edit') === -1) {
+                return '<div class="cs-skeleton-page" role="status" aria-busy="true" aria-live="polite">' +
+                    '<span class="sr-only">Memuat data ruangan dari database...</span>' +
+                    '<div class="flex flex-col gap-2">' +
+                        '<div class="cs-skeleton cs-skeleton-title" style="width: 240px; height: 2rem;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 380px;"></div>' +
+                    '</div>' +
+                    '<div class="cs-skeleton-card flex items-center justify-between gap-4 p-4">' +
+                        '<div class="cs-skeleton cs-skeleton-btn" style="width: 160px;"></div>' +
+                        '<div class="flex gap-2">' +
+                            '<div class="cs-skeleton cs-skeleton-badge"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-badge"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="cs-skeleton-grid">' +
+                        [1, 2, 3, 4, 5, 6].map(function () {
+                            return '<div class="cs-skeleton-card flex flex-col gap-3">' +
+                                '<div class="cs-skeleton" style="height: 180px; width: 100%; border-radius: 0.5rem;"></div>' +
+                                '<div class="flex items-center justify-between mt-2">' +
+                                    '<div class="cs-skeleton cs-skeleton-title" style="width: 60%; height: 1.25rem;"></div>' +
+                                    '<div class="cs-skeleton cs-skeleton-badge"></div>' +
+                                '</div>' +
+                                '<div class="cs-skeleton cs-skeleton-text" style="width: 80%;"></div>' +
+                                '<div class="cs-skeleton cs-skeleton-text-sm" style="width: 50%;"></div>' +
+                                '<div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">' +
+                                    '<div class="cs-skeleton cs-skeleton-text-sm" style="width: 70px;"></div>' +
+                                    '<div class="cs-skeleton cs-skeleton-btn" style="width: 90px; height: 2rem;"></div>' +
+                                '</div>' +
+                            '</div>';
+                        }).join('') +
+                    '</div>' +
+                '</div>';
+            }
+
+            // Halaman Dashboard
+            if (path === '/dashboard' || path === '/') {
+                return '<div class="cs-skeleton-page" role="status" aria-busy="true" aria-live="polite">' +
+                    '<span class="sr-only">Memuat data dashboard dari database...</span>' +
+                    '<div class="flex flex-col gap-2">' +
+                        '<div class="cs-skeleton cs-skeleton-title" style="width: 260px; height: 2rem;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 420px;"></div>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">' +
+                        [1, 2, 3, 4].map(function () {
+                            return '<div class="cs-skeleton-card p-5 relative">' +
+                                '<div class="cs-skeleton cs-skeleton-text-sm" style="width: 50%;"></div>' +
+                                '<div class="cs-skeleton cs-skeleton-title mt-3" style="width: 35%; height: 2.25rem;"></div>' +
+                                '<div class="cs-skeleton cs-skeleton-avatar absolute top-5 right-5" style="width: 2.5rem; height: 2.5rem;"></div>' +
+                            '</div>';
+                        }).join('') +
+                    '</div>' +
+                    '<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">' +
+                        '<div class="lg:col-span-2 cs-skeleton-table-wrapper">' +
+                            '<div class="flex justify-between items-center mb-4">' +
+                                '<div class="cs-skeleton cs-skeleton-title" style="width: 180px; height: 1.25rem;"></div>' +
+                                '<div class="cs-skeleton cs-skeleton-badge"></div>' +
+                            '</div>' +
+                            [1, 2, 3, 4].map(function () {
+                                return '<div class="cs-skeleton-table-row">' +
+                                    '<div class="cs-skeleton cs-skeleton-avatar" style="width: 2rem; height: 2rem;"></div>' +
+                                    '<div class="flex-1 flex flex-col gap-1">' +
+                                        '<div class="cs-skeleton cs-skeleton-text" style="width: 70%;"></div>' +
+                                        '<div class="cs-skeleton cs-skeleton-text-sm" style="width: 40%;"></div>' +
+                                    '</div>' +
+                                    '<div class="cs-skeleton cs-skeleton-badge"></div>' +
+                                '</div>';
+                            }).join('') +
+                        '</div>' +
+                        '<div class="cs-skeleton-table-wrapper">' +
+                            '<div class="cs-skeleton cs-skeleton-title mb-4" style="width: 140px; height: 1.25rem;"></div>' +
+                            '<div class="cs-skeleton" style="height: 140px; width: 100%; border-radius: 0.5rem; margin-bottom: 1rem;"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-text" style="width: 90%;"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-text" style="width: 75%;"></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            // Halaman Jadwal, Peminjaman, Utilisasi, Pengguna, Unit (Tabel / Rekap)
+            return '<div class="cs-skeleton-page" role="status" aria-busy="true" aria-live="polite">' +
+                '<span class="sr-only">Memuat data live dari database...</span>' +
+                '<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">' +
+                    '<div class="flex flex-col gap-2">' +
+                        '<div class="cs-skeleton cs-skeleton-title" style="width: 220px; height: 2rem;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 360px;"></div>' +
+                    '</div>' +
+                    '<div class="flex gap-2">' +
+                        '<div class="cs-skeleton cs-skeleton-btn" style="width: 120px;"></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cs-skeleton-card flex items-center justify-between gap-4 p-4">' +
+                    '<div class="cs-skeleton cs-skeleton-text" style="width: 250px; height: 1.5rem;"></div>' +
+                    '<div class="flex gap-2">' +
+                        '<div class="cs-skeleton cs-skeleton-badge" style="width: 80px;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-badge" style="width: 80px;"></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cs-skeleton-table-wrapper">' +
+                    '<div class="cs-skeleton-table-row pb-3 border-b border-slate-200">' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 25%;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 25%;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 20%;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 15%;"></div>' +
+                        '<div class="cs-skeleton cs-skeleton-text" style="width: 15%;"></div>' +
+                    '</div>' +
+                    [1, 2, 3, 4, 5, 6].map(function () {
+                        return '<div class="cs-skeleton-table-row">' +
+                            '<div class="cs-skeleton cs-skeleton-text" style="width: 25%;"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-text" style="width: 25%;"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-badge" style="width: 20%;"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-text-sm" style="width: 15%;"></div>' +
+                            '<div class="cs-skeleton cs-skeleton-btn" style="width: 15%; height: 2rem;"></div>' +
+                        '</div>';
+                    }).join('') +
+                '</div>' +
+            '</div>';
+        }
+
+        function updateActiveSidebar(targetUrl) {
+            var currentPath = new URL(targetUrl, window.location.origin).pathname;
+            document.querySelectorAll('.cs-sidebar-link').forEach(function (link) {
+                try {
+                    var linkPath = new URL(link.href, window.location.origin).pathname;
+                    if (linkPath === currentPath || (currentPath.indexOf(linkPath) === 0 && linkPath !== '/')) {
+                        link.setAttribute('aria-current', 'page');
+                    } else {
+                        link.removeAttribute('aria-current');
+                    }
+                } catch (e) {}
+            });
+        }
+
+        function reinitializeUi() {
+            initSubmitLoading();
+            initPhotoPreview();
+            initConfirm();
+            initPrint();
+            initAutoRefresh();
+            initDrawer();
+            initDismiss();
+            initDialogs();
+            document.querySelectorAll('form[data-cs-validate]').forEach(enhanceForm);
+        }
+
+        var currentAbortController = null;
+
+        function navigateTo(url, pushState) {
+            var mainContent = document.getElementById('main-content');
+            if (!mainContent) {
+                window.location.href = url;
+                return;
+            }
+
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+            currentAbortController = new AbortController();
+
+            // Beri feedback visual langsung pada sidebar
+            updateActiveSidebar(url);
+
+            // Pasang tampilan kerangka Skeleton secara instan
+            var skeletonHtml = getSkeletonHtml(url);
+            var applySkeleton = function () {
+                mainContent.innerHTML = skeletonHtml;
+            };
+
+            if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.startViewTransition(applySkeleton);
+            } else {
+                applySkeleton();
+            }
+
+            if (pushState !== false) {
+                window.history.pushState({ url: url }, '', url);
+            }
+
+            // Tutup drawer ponsel bila sedang terbuka
+            var sidebar = document.getElementById('cs-sidebar');
+            var overlay = document.querySelector('[data-drawer-overlay]');
+            if (sidebar && sidebar.classList.contains('is-open')) {
+                sidebar.classList.remove('is-open');
+                if (overlay) {
+                    overlay.hidden = true;
+                }
+            }
+
+            window.scrollTo({ top: 0, behavior: 'instant' });
+
+            // Ambil live data halaman baru di background
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-Campus-Space-SPA': '1'
+                },
+                signal: currentAbortController.signal
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    window.location.href = url;
+                    return null;
+                }
+                return res.text();
+            })
+            .then(function (html) {
+                if (!html) {
+                    return;
+                }
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+
+                var newTitle = doc.querySelector('title');
+                if (newTitle) {
+                    document.title = newTitle.innerText;
+                }
+
+                var newMain = doc.getElementById('main-content');
+                if (!newMain) {
+                    window.location.href = url;
+                    return;
+                }
+
+                var applyContent = function () {
+                    mainContent.innerHTML = newMain.innerHTML;
+                };
+
+                if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    var transition = document.startViewTransition(applyContent);
+                    transition.finished.finally(function () {
+                        mainContent.focus();
+                    });
+                } else {
+                    applyContent();
+                    mainContent.focus();
+                }
+
+                reinitializeUi();
+            })
+            .catch(function (err) {
+                if (err.name === 'AbortError') {
+                    return;
+                }
+                window.location.href = url;
+            });
+        }
+
+        // Tangkap klik tautan navigasi internal
+        document.addEventListener('click', function (e) {
+            var anchor = e.target.closest('a');
+            if (!anchor) {
+                return;
+            }
+
+            // Lewati klik dengan modifikasi keyboard
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+                return;
+            }
+
+            if (anchor.target && anchor.target !== '_self') {
+                return;
+            }
+
+            if (anchor.hasAttribute('download') || anchor.href.indexOf('mailto:') === 0 || anchor.href.indexOf('tel:') === 0) {
+                return;
+            }
+
+            var currentUrl = new URL(window.location.href);
+            var targetUrl;
+            try {
+                targetUrl = new URL(anchor.href, window.location.origin);
+            } catch (err) {
+                return;
+            }
+
+            if (targetUrl.origin !== currentUrl.origin) {
+                return;
+            }
+
+            if (targetUrl.pathname === currentUrl.pathname && targetUrl.search === currentUrl.search && targetUrl.hash) {
+                return;
+            }
+
+            if (targetUrl.pathname.indexOf('/logout') !== -1) {
+                return;
+            }
+
+            e.preventDefault();
+            navigateTo(anchor.href, true);
+        });
+
+        window.addEventListener('popstate', function () {
+            navigateTo(window.location.href, false);
+        });
+    }
+
     function init() {
         initNetworkAwareSkeleton();
+        initSpaNavigation();
         initSubmitLoading();
         initPhotoPreview();
         initConfirm();

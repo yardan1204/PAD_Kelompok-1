@@ -5,14 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Masuk') · Campus Space</title>
 
+    {{-- Critical base containment: mencegah FOUC & icon SVG membesar di jaringan lambat --}}
+    <style>
+        svg.cs-icon, .cs-icon { width: 1.25rem !important; height: 1.25rem !important; max-width: 1.25rem !important; max-height: 1.25rem !important; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+    </style>
+
     {{-- Layout tamu (login/register): panel brand navy di kiri, form di kanan; di ponsel bertumpuk.
          Aset sama dengan layouts/app: Vite bila sudah di-build, fallback CDN. --}}
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
+        <style>{!! file_get_contents(resource_path('css/campus-space.css')) !!}</style>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
-        <style type="text/tailwindcss">{!! file_get_contents(resource_path('css/campus-space.css')) !!}</style>
     @endif
 </head>
 <body>

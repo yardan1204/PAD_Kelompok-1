@@ -8,6 +8,16 @@
     {{-- Slot tambahan untuk <head>, misalnya auto-refresh di dashboard --}}
     @stack('head')
 
+    {{-- Critical base containment: mencegah FOUC & icon SVG membesar tak terkontrol di jaringan lambat --}}
+    <style>
+        svg.cs-icon, .cs-icon, .cs-sidebar-link svg, .cs-icon-btn svg { width: 1.25rem !important; height: 1.25rem !important; max-width: 1.25rem !important; max-height: 1.25rem !important; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+        .cs-shell { display: flex; min-height: 100vh; }
+        .cs-sidebar { width: 18rem; flex-shrink: 0; background: #0b2545; color: #fff; }
+        .cs-main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #f3f6fa; }
+        .cs-sidebar-list { list-style: none; padding: 0; margin: 0; }
+        .cs-sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.875rem; color: inherit; text-decoration: none; }
+    </style>
+
     {{-- Pakai Vite (Tailwind + campus-space.css lewat app.css) bila sudah `npm run dev` / `npm run build`;
          jika belum, fallback ke Tailwind CDN dan campus-space.css disisipkan langsung
          agar token & komponen .cs-* tetap berlaku. --}}
@@ -15,8 +25,8 @@
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
+        <style>{!! file_get_contents(resource_path('css/campus-space.css')) !!}</style>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
-        <style type="text/tailwindcss">{!! file_get_contents(resource_path('css/campus-space.css')) !!}</style>
     @endif
 </head>
 {{-- Layout aplikasi (PROMPT 2 Tahap 1): sidebar navy kiri + topbar + konten.
@@ -134,12 +144,6 @@
             </header>
 
             <main id="main-content" tabindex="-1" class="cs-content focus:outline-none">
-                {{-- Indikator jaringan lambat (kecepatan rendah / latensi tinggi) --}}
-                <div id="cs-network-banner" class="cs-network-banner" role="status" aria-live="polite" hidden>
-                    <span class="cs-network-dot" aria-hidden="true"></span>
-                    <span data-network-info>Koneksi lambat terdeteksi. Menampilkan kerangka konten (skeleton loading)...</span>
-                </div>
-
                 @hasSection('page_header')
                     @yield('page_header')
                 @endif
