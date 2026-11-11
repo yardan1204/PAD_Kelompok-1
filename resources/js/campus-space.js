@@ -48,7 +48,11 @@
         patternMismatch: function (el) { return el.dataset.patternMessage || 'Format isian tidak sesuai.'; },
         tooLong: function (el) { return 'Maksimal ' + el.maxLength + ' karakter.'; },
         tooShort: function (el) { return 'Minimal ' + el.minLength + ' karakter.'; },
-        rangeUnderflow: function (el) { return 'Nilai minimal ' + el.min + '.'; },
+        rangeUnderflow: function (el) {
+            return el.type === 'datetime-local'
+                ? 'Waktu mulai tidak boleh mundur dari hari atau waktu saat ini.'
+                : 'Nilai minimal ' + el.min + '.';
+        },
         rangeOverflow: function (el) { return 'Nilai maksimal ' + el.max + '.'; },
         stepMismatch: function () { return 'Masukkan bilangan bulat.'; }
     };
@@ -129,6 +133,22 @@
     }
 
     function syncRules(form) {
+        // Waktu mulai tidak boleh mundur dari hari atau waktu saat ini.
+        form.querySelectorAll('[data-min-now]').forEach(function (start) {
+            var now = new Date();
+            var year = now.getFullYear();
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+            var day = String(now.getDate()).padStart(2, '0');
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
+            var nowStr = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+
+            start.min = nowStr;
+
+            var past = start.value && start.value < nowStr;
+            start.setCustomValidity(past ? 'Waktu mulai tidak boleh mundur dari hari atau waktu saat ini.' : '');
+        });
+
         // Waktu selesai harus setelah waktu mulai (format datetime-local bisa dibandingkan sebagai teks).
         form.querySelectorAll('[data-after]').forEach(function (end) {
             var start = document.getElementById(end.dataset.after);

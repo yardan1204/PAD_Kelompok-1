@@ -38,6 +38,8 @@
     <label for="start_time" class="cs-form-label">Mulai <span class="cs-form-required" aria-hidden="true">*</span></label>
     <input id="start_time" name="start_time" type="datetime-local"
            value="{{ old('start_time', \App\Support\DateFormat::inputValue($schedule?->start_time)) }}" required
+           min="{{ now()->format('Y-m-d\TH:i') }}"
+           data-min-now
            class="cs-form-control"
            @error('start_time') aria-invalid="true" aria-describedby="start_time-error" @enderror>
     <x-field-error for="start_time" />

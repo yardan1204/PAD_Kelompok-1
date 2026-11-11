@@ -89,8 +89,12 @@
             </label>
             <input id="start_time" name="start_time" type="datetime-local"
                    value="{{ old('start_time', \App\Support\DateFormat::inputValue($booking?->start_time)) }}" required
+                   min="{{ now()->format('Y-m-d\TH:i') }}"
+                   data-min-now
                    class="cs-form-control"
-                   @error('start_time') aria-invalid="true" aria-describedby="start_time-error" @enderror>
+                   aria-describedby="start_time-hint @error('start_time') start_time-error @enderror"
+                   @error('start_time') aria-invalid="true" @enderror>
+            <p id="start_time-hint" class="cs-form-hint">Tidak boleh mundur dari hari atau waktu saat ini.</p>
             <x-field-error for="start_time" />
         </div>
 
