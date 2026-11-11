@@ -134,6 +134,12 @@
             </header>
 
             <main id="main-content" tabindex="-1" class="cs-content focus:outline-none">
+                {{-- Indikator jaringan lambat (kecepatan rendah / latensi tinggi) --}}
+                <div id="cs-network-banner" class="cs-network-banner" role="status" aria-live="polite" hidden>
+                    <span class="cs-network-dot" aria-hidden="true"></span>
+                    <span data-network-info>Koneksi lambat terdeteksi. Menampilkan kerangka konten (skeleton loading)...</span>
+                </div>
+
                 @hasSection('page_header')
                     @yield('page_header')
                 @endif

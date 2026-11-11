@@ -498,7 +498,64 @@
         });
     }
 
+    // Deteksi koneksi jaringan lambat & kontrol affordance skeleton loading
+    function initNetworkAwareSkeleton() {
+        var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        var banner = document.getElementById('cs-network-banner');
+
+        function isSlowNetwork() {
+            if (!conn) {
+                return false;
+            }
+            // effectiveType: slow-2g, 2g, 3g
+            var isSlowType = conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || conn.effectiveType === '3g';
+            // downlink < 1.5 Mbps
+            var isLowBandwidth = typeof conn.downlink === 'number' && conn.downlink < 1.5;
+            // rtt (latency) > 500 ms
+            var isHighLatency = typeof conn.rtt === 'number' && conn.rtt > 500;
+            // Mode hemat data (saveData)
+            var isSaveData = Boolean(conn.saveData);
+
+            return isSlowType || isLowBandwidth || isHighLatency || isSaveData;
+        }
+
+        function updateNetworkState() {
+            var slow = isSlowNetwork();
+            if (slow) {
+                document.documentElement.classList.add('cs-slow-network');
+                if (banner) {
+                    banner.setAttribute('data-active', 'true');
+                    banner.hidden = false;
+                    var speed = conn && conn.downlink ? conn.downlink + ' Mbps' : '< 1.5 Mbps';
+                    var latency = conn && conn.rtt ? conn.rtt + ' ms' : '> 500 ms';
+                    var info = banner.querySelector('[data-network-info]');
+                    if (info) {
+                        info.textContent = 'Koneksi lambat terdeteksi (kecepatan ' + speed + ', latensi ' + latency + '). Mengaktifkan mode kerangka konten (skeleton loading)...';
+                    }
+                }
+                document.querySelectorAll('[data-skeleton-container]').forEach(function (el) {
+                    el.classList.add('is-skeleton-active');
+                });
+            } else {
+                document.documentElement.classList.remove('cs-slow-network');
+                if (banner) {
+                    banner.removeAttribute('data-active');
+                    banner.hidden = true;
+                }
+                document.querySelectorAll('[data-skeleton-container]').forEach(function (el) {
+                    el.classList.remove('is-skeleton-active');
+                });
+            }
+        }
+
+        if (conn) {
+            updateNetworkState();
+            conn.addEventListener('change', updateNetworkState);
+        }
+    }
+
     function init() {
+        initNetworkAwareSkeleton();
         initSubmitLoading();
         initPhotoPreview();
         initConfirm();
